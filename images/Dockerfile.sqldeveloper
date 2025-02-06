@@ -1,0 +1,3 @@
+FROM docker.io/brionetech/sqldeveloper@sha256:1f1e1aa5561405b8b071eabc6bd5419da124af245039fa7a92ab76639a1cb915
+
+RUN dnf install -y file
