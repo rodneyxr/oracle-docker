@@ -43,15 +43,38 @@ Restart ORDS.
 docker-compose restart ords
 ```
 
-## Access ORDS/APEX
+# Access ORDS/APEX
 
-ORDS: [http://localhost:8080/ords](http://localhost:8080/ords).
+## ORDS
 
-APEX: [http://localhost:8080/ords/apex](http://localhost:8080/ords/apex)
+**URL** - [http://localhost:8080/ords](http://localhost:8080/ords)
 
-- Workspace: `INTERNAL`
-- Username: `ADMIN`
-- Password: `<YOUR_PASSWORD>`
+## APEX
+
+**URL** - [http://localhost:8080/ords/apex](http://localhost:8080/ords/apex)
+
+| Field | Value |
+| --- | --- |
+| Workspace | `INTERNAL` |
+| Username | `ADMIN` |
+| Password | `<YOUR_PASSWORD>` |
+
+## SQLDeveloper
+
+**URL** - [http://localhost:6080](http://localhost:6080)
+
+The VNC password is `password`.
+
+To connect to the DB as `SYS`, use the following details.
+
+| Field | Value |
+| --- | --- |
+| Username | `SYS` |
+| Password | `password` |
+| Role | `SYSDBA` |
+| Hostname | `db` |
+| Port | `1521` |
+| Service Name | `XEPDB1` |
 
 # Other Notes
 
