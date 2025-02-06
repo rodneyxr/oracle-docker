@@ -2,10 +2,11 @@
 
 ## Download APEX
 
-[Download APEX](https://www.oracle.com/tools/downloads/apex-downloads/) zip and extract it to the `./volumes/apex` directory.
+[Download APEX](https://www.oracle.com/tools/downloads/apex-downloads/) zip and extract it to the `./volumes/apex` directory or run the following commands.
 
 ```bash
-unzip apex-latest.zip -d ./volumes
+curl https://download.oracle.com/otn_software/apex/apex-latest.zip -o apex-latest.zip
+unzip apex-latest.zip "apex/*" -d ./volumes
 ```
 *After, you should have `./volumes/apex/{builder,core,images,*.sql}`*
 
@@ -25,15 +26,15 @@ cd /opt/oracle/apex
 sqlplus sys/password@XEPDB1 as sysdba
 @apexins.sql SYSAUX SYSAUX TEMP /i/
 @apxchpwd.sql
+ALTER USER APEX_PUBLIC_USER ACCOUNT UNLOCK;
+exit
 exit
 ```
 
 ## Install ORDS
 
 ```bash
-docker-compose exec -it ords bash
-ords --config /etc/ords/config install --admin-user SYS --proxy-user --feature-sdw true --gateway-user APEX_PUBLIC_USER --gateway-mode proxied
-exit
+docker-compose exec -it ords ords --config /etc/ords/config install --admin-user SYS --proxy-user --feature-sdw true --gateway-user APEX_PUBLIC_USER --gateway-mode proxied --db-hostname db --db-port 1521 --db-servicename XEPDB1
 ```
 
 Restart ORDS.
@@ -41,6 +42,16 @@ Restart ORDS.
 ```bash
 docker-compose restart ords
 ```
+
+## Access ORDS/APEX
+
+ORDS: [http://localhost:8080/ords](http://localhost:8080/ords).
+
+APEX: [http://localhost:8080/ords/apex](http://localhost:8080/ords/apex)
+
+- Workspace: `INTERNAL`
+- Username: `ADMIN`
+- Password: `<YOUR_PASSWORD>`
 
 # Other Notes
 

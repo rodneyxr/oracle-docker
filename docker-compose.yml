@@ -22,7 +22,7 @@ services:
       - --apex-images
       - /opt/oracle/apex/images
     volumes:
-      - ./volumes/ords/etc-ords-config:/etc/ords/config
+      - ords-vol-config:/etc/ords/config
       - ./volumes/apex:/opt/oracle/apex
     ports:
       - 8080:8080
@@ -48,3 +48,10 @@ volumes:
       type: none
       o: bind
       device: ./volumes/oracle-data
+
+  ords-vol-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./volumes/ords/config
