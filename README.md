@@ -13,6 +13,7 @@ unzip apex-latest.zip "apex/*" -d ./volumes
 # Start the services
 
 ```bash
+mkdir -p ./volumes/oracle-data ./volumes/ords/config
 docker-compose up -d
 ```
 
