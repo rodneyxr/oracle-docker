@@ -7,37 +7,44 @@ spec:
   replicas: 1
   selector:
     matchLabels:
-      app: {{ include "oracle-apex.name" . }}
+      app: {{ include "oracle-apex.name" . }}-db
       component: db
   template:
     metadata:
       labels:
-        app: {{ include "oracle-apex.name" . }}
+        app: {{ include "oracle-apex.name" . }}-db
         component: db
     spec:
       containers:
         - name: oracle-db
           image: {{ .Values.db.image }}
-          imagePullPolicy: {{ .Values.db.pullPolicy }}
+          imagePullPolicy: {{ .Values.db.imagePullPolicy }}
           ports:
-            - containerPort: {{ .Values.db.port }}
+            - containerPort: {{ .Values.db.service.port }}
           env:
             - name: ORACLE_PWD
               value: {{ .Values.db.sysPassword }}
           readinessProbe:
             exec:
-              command: ["/bin/bash", "-c", "tnsping localhost {{ .Values.db.port }}"]
-            initialDelaySeconds: 60
-            periodSeconds: 10
+              command: [ "/bin/sh", "-c", "$ORACLE_BASE/checkDBStatus.sh" ]
+            initialDelaySeconds: 20
+            periodSeconds: 40
+            timeoutSeconds: 20
           volumeMounts:
-            - name: db-data
+            - name: oradata
               mountPath: /opt/oracle/oradata
+            - name: apex-storage
+              mountPath: /opt/oracle/apex
+      volumes:
+        - name: apex-storage
+          persistentVolumeClaim:
+            claimName: {{ include "oracle-apex.fullname" . }}-apex-pvc
   volumeClaimTemplates:
     - metadata:
-        name: db-data
+        name: oradata
       spec:
         accessModes: ["ReadWriteOnce"]
-        storageClassName: {{ .Values.dbVolume.storageClassName }}
+        storageClassName: {{ .Values.storageClassName }}
         resources:
           requests:
-            storage: {{ .Values.dbVolume.size }}
+            storage: {{ .Values.db.storage.size }}

@@ -103,3 +103,33 @@ Show APEX users.
 select username from all_users where username like 'APEX%';
 select user_name from APEX_240200.wwv_flow_fnd_user;
 ```
+
+Automated APEX installation.
+
+```sql
+-- Install APEX
+sqlplus sys/password@apex-oracle-apex-db:1521/XEPDB1 AS SYSDBA <<EOF
+@apexins.sql SYSAUX SYSAUX TEMP /i/
+EOF
+
+-- Create ADMIN user
+sqlplus sys/password@apex-oracle-apex-db:1521/XEPDB1 AS SYSDBA <<EOF
+@@core/scripts/set_appun.sql
+
+alter session set current_schema = &APPUN;
+BEGIN
+    wwv_flow_instance_admin.create_or_update_admin_user(
+        p_username => 'ADMIN',
+        p_email    => 'ADMIN',
+        p_password => 'P@ssw0rd!'
+    );
+    COMMIT;
+END;
+/
+EOF
+
+-- Unlock APEX_PUBLIC_USER
+sqlplus sys/password@apex-oracle-apex-db:1521/XEPDB1 AS SYSDBA <<EOF
+ALTER USER APEX_PUBLIC_USER ACCOUNT UNLOCK;
+EOF
+```

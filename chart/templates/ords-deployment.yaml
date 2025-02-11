@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "oracle-apex.fullname" . }}-ords
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "oracle-apex.name" . }}
+      component: ords
+  template:
+    metadata:
+      labels:
+        app: {{ include "oracle-apex.name" . }}
+        component: ords
+    spec:
+      initContainers:
+      #   - name: download-apex
+      #     image: {{ .Values.ords.image }}
+      #     command: ["/bin/sh", "-c"]
+      #     args:
+      #       - |
+      #         set -e
+      #         echo "Checking if APEX is already extracted..."
+      #         if [ -d "/opt/oracle/apex/images" ]; then
+      #           echo "APEX is already downloaded and extracted. Skipping."
+      #           exit 0
+      #         fi
+
+      #         echo "Downloading APEX..."
+      #         curl -L -o /opt/oracle/apex/apex-latest.zip https://download.oracle.com/otn_software/apex/apex-latest.zip
+
+      #         echo "Extracting APEX..."
+      #         cd /opt/oracle && jar xf /opt/oracle/apex/apex-latest.zip apex/
+      #         rm /opt/oracle/apex/apex-latest.zip  # Clean up zip file
+              
+      #         echo "APEX Download and Extraction Complete."
+      #     volumeMounts:
+      #       - name: apex-storage
+      #         mountPath: /opt/oracle/apex
+        - name: wait-for-db
+          image: alpine:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Waiting for Oracle DB to be ready..."
+              until nc -z {{ include "oracle-apex.fullname" . }}-db {{ .Values.db.service.port }}; do
+                echo "Database not ready. Retrying in 5 seconds..."
+                sleep 5
+              done
+              echo "Database is up!"
+        - name: Install Ords
+          image: {{ .Values.ords.image }}
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              set -e
+              echo "Checking if ORDS is already installed..."
+              if [ -d "/etc/ords/config" ]; then
+                echo "ORDS is already installed. Skipping."
+                exit 0
+              fi
+
+              echo "Installing ORDS..."
+              # java -jar /opt/oracle/ords/ords.war configdir /etc/ords/config
+              # java -jar /opt/oracle/ords/ords.war install simple
+              # java -jar /opt/oracle/ords/ords.war setup --silent
+              # FIXME: need to figure out how to use --password-stdin here
+              ords --config /etc/ords/config install --admin-user SYS --proxy-user --feature-sdw true --gateway-user APEX_PUBLIC_USER --gateway-mode proxied --db-hostname db --db-port 1521 --db-servicename XEPDB1
+              echo "ORDS Installation Complete."
+      containers:
+        - name: ords
+          image: {{ .Values.ords.image }}
+          imagePullPolicy: {{ .Values.ords.imagePullPolicy }}
+          command: ["ords", "--config", "{{ .Values.ords.configPath }}", "serve", "--apex-images", "{{ .Values.ords.apexPath }}/images"]
+          ports:
+            - containerPort: {{ .Values.ords.service.port }}
+          volumeMounts:
+            - name: ords-config
+              mountPath: {{ .Values.ords.configPath }}
+            - name: apex-storage
+              mountPath: {{ .Values.ords.apexPath }}
+              readOnly: true
+      volumes:
+        - name: ords-config
+          persistentVolumeClaim:
+            claimName: {{ include "oracle-apex.fullname" . }}-ords-config-pvc
+        - name: apex-storage
+          persistentVolumeClaim:
+            claimName: {{ include "oracle-apex.fullname" . }}-apex-pvc

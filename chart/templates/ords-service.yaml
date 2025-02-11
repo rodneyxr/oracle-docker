@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "oracle-apex.fullname" . }}-ords
+  labels:
+    app: {{ include "oracle-apex.name" . }}
+    component: ords
+spec:
+  type: {{ .Values.ords.service.type }}
+  ports:
+    - port: {{ .Values.ords.service.port }}
+      targetPort: {{ .Values.ords.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ include "oracle-apex.name" . }}
+    component: ords

@@ -1,5 +1,5 @@
 apiVersion: v2
 name: oracle-apex
-description: Helm chart for Oracle XE + ORDS + APEX automation
+description: Helm chart for Oracle XE + ORDS + APEX deployment.
 version: 0.1.0
 appVersion: "1.0"

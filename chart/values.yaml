@@ -1,4 +1,40 @@
-# Storage
-dbVolume:
-  size: 5Gi
-  storageClassName: "hostpath"
+# Namespace
+namespace: default
+
+# Database Configuration
+db:
+  image: "container-registry.oracle.com/database/express:21.3.0-xe"
+  imagePullPolicy: IfNotPresent
+  sysPassword: "password"
+  # serviceName: "XEPDB1"
+  service:
+    port: 1521
+    targetPort: 1521
+  storage:
+    size: 5Gi  # Size of DB PersistentVolumeClaim (PVC)
+
+# ORDS Configuration
+ords:
+  image: "container-registry.oracle.com/database/ords:24.4.0"
+  imagePullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  storage:
+    configPath:
+      size: 1Gi
+      accessMode: ReadWriteOnce
+    apexMount:
+      size: 1Gi
+      accessMode: ReadWriteOnce
+  configPath: "/etc/ords/config"
+  apexPath: "/opt/oracle/apex"
+
+# Global Storage Configuration
+storageClassName: ""
+
+# APEX Installation & Setup
+apex:
+  download:
+    enabled: true  # Downloads APEX automatically if not present
