@@ -1,0 +1,4 @@
+# Storage
+dbVolume:
+  size: 5Gi
+  storageClassName: "hostpath"

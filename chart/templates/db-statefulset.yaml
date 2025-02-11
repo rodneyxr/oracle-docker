@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "oracle-apex.fullname" . }}-db
+spec:
+  serviceName: {{ include "oracle-apex.fullname" . }}-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "oracle-apex.name" . }}
+      component: db
+  template:
+    metadata:
+      labels:
+        app: {{ include "oracle-apex.name" . }}
+        component: db
+    spec:
+      containers:
+        - name: oracle-db
+          image: {{ .Values.db.image }}
+          imagePullPolicy: {{ .Values.db.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.db.port }}
+          env:
+            - name: ORACLE_PWD
+              value: {{ .Values.db.sysPassword }}
+          readinessProbe:
+            exec:
+              command: ["/bin/bash", "-c", "tnsping localhost {{ .Values.db.port }}"]
+            initialDelaySeconds: 60
+            periodSeconds: 10
+          volumeMounts:
+            - name: db-data
+              mountPath: /opt/oracle/oradata
+  volumeClaimTemplates:
+    - metadata:
+        name: db-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.dbVolume.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.dbVolume.size }}
