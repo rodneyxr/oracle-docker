@@ -27,18 +27,12 @@ spec:
           readinessProbe:
             exec:
               command: [ "/bin/sh", "-c", "$ORACLE_BASE/checkDBStatus.sh" ]
-            initialDelaySeconds: 20
-            periodSeconds: 40
+            initialDelaySeconds: 5
+            periodSeconds: 10
             timeoutSeconds: 20
           volumeMounts:
             - name: oradata
               mountPath: /opt/oracle/oradata
-            - name: apex-storage
-              mountPath: /opt/oracle/apex
-      volumes:
-        - name: apex-storage
-          persistentVolumeClaim:
-            claimName: {{ include "oracle-apex.fullname" . }}-apex-pvc
   volumeClaimTemplates:
     - metadata:
         name: oradata

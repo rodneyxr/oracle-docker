@@ -28,13 +28,22 @@ ords:
     apexMount:
       size: 1Gi
       accessMode: ReadWriteOnce
+  db:
+    port: 1521
+    sysUser: SYS
+    # Must match the db admin password
+    sysPassword: password
+    # This will be set at ORDS installation
+    proxyPassword: password 
+    gatewayUser: APEX_PUBLIC_USER
+    serviceName: XEPDB1
   configPath: "/etc/ords/config"
   apexPath: "/opt/oracle/apex"
+  apex:
+    adminUser: "" #defaults to ADMIN
+    adminEmail: "" #defaults to ADMIN
+    adminPassword: "" #defaults to P@ssw0rd!
+
 
 # Global Storage Configuration
 storageClassName: ""
-
-# APEX Installation & Setup
-apex:
-  download:
-    enabled: true  # Downloads APEX automatically if not present
