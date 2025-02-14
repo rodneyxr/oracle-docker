@@ -51,7 +51,9 @@ spec:
             args:
               - |
                 set -e
+                echo "################################################################################"
                 echo "Installing APEX..."
+                echo "################################################################################"
                 cd {{ .Values.ords.apexPath }}
                 
                 # Create SQL script for installation
@@ -60,6 +62,10 @@ spec:
                 EOF
 
                 # Create ADMIN user with a password
+                echo
+                echo "################################################################################"
+                echo "Creating APEX admin user..."
+                echo "################################################################################"
                 sqlplus {{ .Values.ords.db.sysUser }}/{{ .Values.ords.db.sysPassword }}@{{ include "oracle-apex.fullname" . }}-db:{{ .Values.ords.db.port }}/{{ .Values.ords.db.serviceName }} AS SYSDBA <<EOF
                 @@core/scripts/set_appun.sql
 
@@ -76,10 +82,16 @@ spec:
                 /
                 EOF
 
+                echo
+                echo "################################################################################"
+                echo "Unlocking APEX_PUBLIC_USER..."
+                echo "################################################################################"
                 sqlplus {{ .Values.ords.db.sysUser }}/{{ .Values.ords.db.sysPassword }}@{{ include "oracle-apex.fullname" . }}-db:{{ .Values.ords.db.port }}/{{ .Values.ords.db.serviceName }} AS SYSDBA <<EOF
                 ALTER USER APEX_PUBLIC_USER ACCOUNT UNLOCK;
                 EOF
 
+                echo
+                echo "################################################################################"
                 echo "APEX installation complete."
             volumeMounts:
               - name: apex-storage
