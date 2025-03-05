@@ -1,0 +1,48 @@
+# Namespace
+namespace: default
+
+# Database Configuration
+db:
+  image: "container-registry.oracle.com/database/free:23.7.0.0-amd64" # 23.7.0.0-lite-amd64
+  imagePullPolicy: IfNotPresent
+  sysPassword: "password"
+  service:
+    port: 1521
+    targetPort: 1521
+  storage:
+    size: 5Gi  # Size of DB PersistentVolumeClaim (PVC)
+
+# ORDS Configuration
+ords:
+  image: "container-registry.oracle.com/database/ords:24.4.0"
+  imagePullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+    targetPort: 8080
+  storage:
+    configPath:
+      size: 1Gi
+      accessMode: ReadWriteOnce
+    apexMount:
+      size: 1Gi
+      accessMode: ReadWriteOnce
+  db:
+    port: 1521
+    sysUser: SYS
+    # Must match the db admin password
+    sysPassword: password
+    # This will be set at ORDS installation
+    proxyPassword: password 
+    gatewayUser: APEX_PUBLIC_USER
+    serviceName: FREEPDB1
+  configPath: "/etc/ords/config"
+  apexPath: "/opt/oracle/apex"
+  apex:
+    adminUser: "" # defaults to ADMIN
+    adminEmail: "" # defaults to ADMIN
+    adminPassword: "" # defaults to P@ssw0rd!
+
+
+# Global Storage Configuration
+storageClassName: ""

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "oracle-apex.fullname" . }}-apex-pvc
+spec:
+  accessModes:
+    - {{ .Values.ords.storage.apexMount.accessMode }}
+  resources:
+    requests:
+      storage: {{ .Values.ords.storage.apexMount.size }}
+  {{- if .Values.storageClassName }}
+  storageClassName: {{ .Values.storageClassName }}
+  {{- end }}

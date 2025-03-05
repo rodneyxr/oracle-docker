@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "oracle-apex.fullname" . }}-ords
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "oracle-apex.name" . }}
+      component: ords
+  template:
+    metadata:
+      labels:
+        app: {{ include "oracle-apex.name" . }}
+        component: ords
+    spec:
+      initContainers:
+        - name: wait-for-db
+          image: alpine:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              echo "Waiting for Oracle DB to be ready..."
+              until nc -z {{ include "oracle-apex.fullname" . }}-db {{ .Values.db.service.port }}; do
+                echo "Database not ready. Retrying in 5 seconds..."
+                sleep 5
+              done
+              echo "Database is up!"
+        - name: wait-for-install
+          image: alpine:latest
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              while [ ! -f {{ .Values.ords.configPath }}/install_done ]; do
+                echo "Waiting for ORDS install to complete..."
+                sleep 5
+              done
+              echo "ORDS installation found!"
+          volumeMounts:
+            - name: ords-config
+              mountPath: {{ .Values.ords.configPath }}
+              readOnly: true
+      containers:
+        - name: ords
+          image: {{ .Values.ords.image }}
+          imagePullPolicy: {{ .Values.ords.imagePullPolicy }}
+          command: ["ords", "--config", "{{ .Values.ords.configPath }}", "serve", "--apex-images", "{{ .Values.ords.apexPath }}/images"]
+          ports:
+            - containerPort: {{ .Values.ords.service.port }}
+          volumeMounts:
+            - name: ords-config
+              mountPath: {{ .Values.ords.configPath }}
+            - name: apex-storage
+              mountPath: {{ .Values.ords.apexPath }}
+              readOnly: true
+      volumes:
+        - name: ords-config
+          persistentVolumeClaim:
+            claimName: {{ include "oracle-apex.fullname" . }}-ords-config-pvc
+        - name: apex-storage
+          persistentVolumeClaim:
+            claimName: {{ include "oracle-apex.fullname" . }}-apex-pvc

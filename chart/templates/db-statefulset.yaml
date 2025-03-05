@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "oracle-apex.fullname" . }}-db
+spec:
+  serviceName: {{ include "oracle-apex.fullname" . }}-db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "oracle-apex.name" . }}-db
+      component: db
+  template:
+    metadata:
+      labels:
+        app: {{ include "oracle-apex.name" . }}-db
+        component: db
+    spec:
+      containers:
+        - name: oracle-db
+          image: {{ .Values.db.image }}
+          imagePullPolicy: {{ .Values.db.imagePullPolicy }}
+          ports:
+            - containerPort: {{ .Values.db.service.port }}
+          env:
+            - name: ORACLE_PWD
+              value: {{ .Values.db.sysPassword }}
+          readinessProbe:
+            exec:
+              command: [ "/bin/sh", "-c", "$ORACLE_BASE/checkDBStatus.sh" ]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 20
+          volumeMounts:
+            - name: oradata
+              mountPath: /opt/oracle/oradata
+  volumeClaimTemplates:
+    - metadata:
+        name: oradata
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: {{ .Values.storageClassName }}
+        resources:
+          requests:
+            storage: {{ .Values.db.storage.size }}

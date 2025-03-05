@@ -1,0 +1,119 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "oracle-apex.fullname" . }}-apex-install
+  # TODO: Fix helm hooks
+  # annotations:
+  #   "helm.sh/hook": post-install,post-upgrade,pre-delete
+  #   "helm.sh/hook-delete-policy": before-hook-creation
+spec:
+  template:
+      spec:
+        restartPolicy: Never
+        initContainers:
+          - name: download-apex
+            image: {{ .Values.ords.image }}
+            command: ["/bin/sh", "-c"]
+            args:
+              - |
+                set -e
+                echo "Checking if APEX is already extracted..."
+                if [ -d "{{ .Values.ords.apexPath }}/images" ]; then
+                  echo "APEX is already downloaded and extracted. Skipping."
+                  exit 0
+                fi
+
+                echo "Downloading APEX..."
+                curl -L -o {{ .Values.ords.apexPath }}/apex-latest.zip https://download.oracle.com/otn_software/apex/apex-latest.zip
+
+                echo "Extracting APEX..."
+                cd {{ .Values.ords.apexPath | dir }} && jar xf {{ .Values.ords.apexPath }}/apex-latest.zip apex/
+                rm {{ .Values.ords.apexPath }}/apex-latest.zip  # Clean up zip file
+                
+                echo "APEX Download and Extraction Complete."
+            volumeMounts:
+              - name: apex-storage
+                mountPath: {{ .Values.ords.apexPath }}
+          - name: wait-for-db
+            image: alpine:latest
+            command: ["/bin/sh", "-c"]
+            args:
+              - |
+                echo "Waiting for Oracle DB to be ready..."
+                until nc -z {{ include "oracle-apex.fullname" . }}-db {{ .Values.db.service.port }}; do
+                  echo "Database not ready. Retrying in 5 seconds..."
+                  sleep 5
+                done
+                echo "Database is up!"
+          - name: install-apex
+            image: {{ .Values.db.image }}
+            command: ["/bin/bash", "-c"]
+            args:
+              - |
+                set -e
+                echo "################################################################################"
+                echo "Installing APEX..."
+                echo "################################################################################"
+                cd {{ .Values.ords.apexPath }}
+                
+                # Create SQL script for installation
+                sqlplus {{ .Values.ords.db.sysUser }}/{{ .Values.ords.db.sysPassword }}@{{ include "oracle-apex.fullname" . }}-db:{{ .Values.ords.db.port }}/{{ .Values.ords.db.serviceName }} AS SYSDBA <<EOF
+                @apexins.sql SYSAUX SYSAUX TEMP /i/
+                EOF
+
+                # Create ADMIN user with a password
+                echo
+                echo "################################################################################"
+                echo "Creating APEX admin user..."
+                echo "################################################################################"
+                sqlplus {{ .Values.ords.db.sysUser }}/{{ .Values.ords.db.sysPassword }}@{{ include "oracle-apex.fullname" . }}-db:{{ .Values.ords.db.port }}/{{ .Values.ords.db.serviceName }} AS SYSDBA <<EOF
+                @@core/scripts/set_appun.sql
+
+                alter session set current_schema = &APPUN;
+                BEGIN
+                    -- Create or update the APEX admin user
+                    wwv_flow_instance_admin.create_or_update_admin_user(
+                        p_username => '{{ .Values.ords.apex.adminUser | default "ADMIN" }}',
+                        p_email    => '{{ .Values.ords.apex.adminEmail | default "ADMIN" }}',
+                        p_password => '{{ .Values.ords.apex.adminPassword | default "P@ssw0rd!" }}'
+                    );
+                    COMMIT;
+                END;
+                /
+                EOF
+
+                echo
+                echo "################################################################################"
+                echo "Unlocking APEX_PUBLIC_USER..."
+                echo "################################################################################"
+                sqlplus {{ .Values.ords.db.sysUser }}/{{ .Values.ords.db.sysPassword }}@{{ include "oracle-apex.fullname" . }}-db:{{ .Values.ords.db.port }}/{{ .Values.ords.db.serviceName }} AS SYSDBA <<EOF
+                ALTER USER APEX_PUBLIC_USER ACCOUNT UNLOCK;
+                EOF
+
+                echo
+                echo "################################################################################"
+                echo "APEX installation complete."
+            volumeMounts:
+              - name: apex-storage
+                mountPath: {{ .Values.ords.apexPath }}
+                readOnly: true
+        containers:
+          - name: install-ords
+            image: {{ .Values.ords.image }}
+            command: ["/bin/sh", "-c"]
+            args:
+              - |
+                set -e
+                echo "Installing ORDS..."
+                echo -e "{{ .Values.ords.db.sysPassword }}\n{{ .Values.ords.db.proxyPassword }}" | ords --config {{ .Values.ords.configPath }} install --admin-user {{ .Values.ords.db.sysUser }} --proxy-user --feature-sdw true --gateway-user {{ .Values.ords.db.gatewayUser }} --gateway-mode proxied --db-hostname {{ include "oracle-apex.fullname" . }}-db --db-port {{ .Values.ords.db.port }} --db-servicename {{ .Values.ords.db.serviceName }} --password-stdin
+                echo "ORDS Installation Complete." && touch {{ .Values.ords.configPath}}/install_done
+            volumeMounts:
+              - name: ords-config
+                mountPath: {{ .Values.ords.configPath }}
+        volumes:
+          - name: apex-storage
+            persistentVolumeClaim:
+              claimName: {{ include "oracle-apex.fullname" . }}-apex-pvc
+          - name: ords-config
+            persistentVolumeClaim:
+              claimName: {{ include "oracle-apex.fullname" . }}-ords-config-pvc
