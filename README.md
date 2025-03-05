@@ -24,7 +24,7 @@ Install APEX on the DB.
 ```bash
 docker-compose exec -it db bash
 cd /opt/oracle/apex
-sqlplus sys/password@XEPDB1 as sysdba
+sqlplus sys/password@FREEPDB1 as sysdba
 @apexins.sql SYSAUX SYSAUX TEMP /i/
 @apxchpwd.sql
 ALTER USER APEX_PUBLIC_USER ACCOUNT UNLOCK;
@@ -35,7 +35,7 @@ exit
 ## Install ORDS
 
 ```bash
-docker-compose exec -it ords ords --config /etc/ords/config install --admin-user SYS --proxy-user --feature-sdw true --gateway-user APEX_PUBLIC_USER --gateway-mode proxied --db-hostname db --db-port 1521 --db-servicename XEPDB1
+docker-compose exec -it ords ords --config /etc/ords/config install --admin-user SYS --proxy-user --feature-sdw true --gateway-user APEX_PUBLIC_USER --gateway-mode proxied --db-hostname db --db-port 1521 --db-servicename FREEPDB1
 ```
 
 Restart ORDS.
@@ -75,14 +75,14 @@ To connect to the DB as `SYS`, use the following details.
 | Role | `SYSDBA` |
 | Hostname | `db` |
 | Port | `1521` |
-| Service Name | `XEPDB1` |
+| Service Name | `FREEPDB1` |
 
 # Other Notes
 
 Access DB in one shot.
 
 ```bash
-docker-compose exec -it db sqlplus sys/password@XEPDB1 as sysdba
+docker-compose exec -it db sqlplus sys/password@FREEPDB1 as sysdba
 ```
 
 Allowing a user to connect through the ORDS_PUBLIC_USER gateway user
@@ -108,12 +108,12 @@ Automated APEX installation.
 
 ```sql
 -- Install APEX
-sqlplus sys/password@apex-oracle-apex-db:1521/XEPDB1 AS SYSDBA <<EOF
+sqlplus sys/password@apex-oracle-apex-db:1521/FREEPDB1 AS SYSDBA <<EOF
 @apexins.sql SYSAUX SYSAUX TEMP /i/
 EOF
 
 -- Create ADMIN user
-sqlplus sys/password@apex-oracle-apex-db:1521/XEPDB1 AS SYSDBA <<EOF
+sqlplus sys/password@apex-oracle-apex-db:1521/FREEPDB1 AS SYSDBA <<EOF
 @@core/scripts/set_appun.sql
 
 alter session set current_schema = &APPUN;
@@ -129,7 +129,7 @@ END;
 EOF
 
 -- Unlock APEX_PUBLIC_USER
-sqlplus sys/password@apex-oracle-apex-db:1521/XEPDB1 AS SYSDBA <<EOF
+sqlplus sys/password@apex-oracle-apex-db:1521/FREEPDB1 AS SYSDBA <<EOF
 ALTER USER APEX_PUBLIC_USER ACCOUNT UNLOCK;
 EOF
 ```
